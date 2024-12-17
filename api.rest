@@ -1,0 +1,27 @@
+POST http://localhost:3000/task/
+Content-Type: application/json
+
+{
+    "id": "1",
+    "title": "string",
+    "description": "string",
+    "status": "string",
+    "updatedDate": "Date",
+    "expirationDate": "Date"
+}
+###
+
+GET http://localhost:3000/task/1
+
+###
+PUT http://localhost:3000/task/10
+Content-Type: application/json
+
+{
+    "id": "1",
+    "title": "teste",
+    "description": "string",
+    "status": "string",
+    "updatedDate": "Date",
+    "expirationDate": "Date"
+}
