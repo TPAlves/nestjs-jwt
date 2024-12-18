@@ -13,7 +13,7 @@ import { UserModule } from 'src/user/user.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          // + É uma conversão implicita
+          // + O operador + é usado para garantir a conversão explícita para número
           expiresIn: +configService.get<number>('JWT_EXPIRATION_TIME'),
         },
       }),
