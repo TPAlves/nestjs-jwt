@@ -18,27 +18,27 @@ import { AuthGuard } from 'src/auth/auth.guard';
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
   @Post()
-  createTask(@Body() task: TaskDto) {
-    this.taskService.createTask(task);
+  async createTask(@Body() task: TaskDto) {
+    return await this.taskService.createTask(task);
   }
 
   @Get('/:id')
-  getTaskById(@Param('id') id: string): TaskDto {
-    return this.taskService.getTaskById(id);
+  async getTaskById(@Param('id') id: string): Promise<TaskDto> {
+    return await this.taskService.getTaskById(id);
   }
 
   @Get()
-  getAllTasks(@Query() params: FindAllParameters): TaskDto[] {
-    return this.taskService.getAllTasks(params);
+  async getAllTasks(@Query() params: FindAllParameters): Promise<TaskDto[]> {
+    return await this.taskService.getAllTasks(params);
   }
 
   @Put('/:id')
-  updateTask(@Param('id') id: string, @Body() task: TaskDto) {
-    return this.taskService.updateTask(id, task);
+  async updateTask(@Param('id') id: string, @Body() task: Partial<TaskDto>) {
+    return await this.taskService.updateTask(id, task);
   }
 
   @Delete('/:id')
-  deleteTask(@Param('id') id: string): string {
-    return this.taskService.deleteTask(id);
+  async deleteTask(@Param('id') id: string): Promise<string> {
+    return await this.taskService.deleteTask(id);
   }
 }

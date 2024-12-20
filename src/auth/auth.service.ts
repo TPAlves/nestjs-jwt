@@ -18,8 +18,8 @@ export class AuthService {
     );
   }
 
-  login(username: string, password: string): AuthResponseDto {
-    const existsUser = this.userService.findByUserName(username);
+  async login(username: string, password: string): Promise<AuthResponseDto> {
+    const existsUser = await this.userService.findByUserName(username);
     if (!existsUser || !compareSync(password, existsUser.password)) {
       throw new UnauthorizedException('Dados inválidos');
     }

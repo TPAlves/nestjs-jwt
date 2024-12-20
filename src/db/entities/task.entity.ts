@@ -3,7 +3,8 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity('tasks')
 export class TaskEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  // Opcional
+  id?: string;
 
   @Column({ type: 'varchar' })
   title: string;

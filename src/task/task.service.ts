@@ -1,67 +1,102 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { FindAllParameters, TaskDto, TaskStatusEnum } from './task.dto';
-import { v4 as uuid } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { TaskEntity } from 'src/db/entities/task.entity';
+import { FindOptionsWhere, Repository, Like } from 'typeorm';
+import { validate as uuidValidate } from 'uuid';
 
 @Injectable()
 export class TaskService {
-  private tasks: TaskDto[] = [];
+  constructor(
+    @InjectRepository(TaskEntity)
+    private readonly taskRepository: Repository<TaskEntity>,
+  ) {}
 
-  createTask(task: TaskDto) {
-    task.id = uuid();
-    task.status = TaskStatusEnum.TODO;
-    task.updatedDate = new Date();
-    this.tasks.push(task);
+  async createTask(task: TaskDto) {
+    const taskToSave: TaskEntity = {
+      title: task.title,
+      description: task.description,
+      status: TaskStatusEnum.TODO,
+      updatedDate: new Date(),
+      expirationDate: task.expirationDate,
+    };
+    const createdTask = await this.taskRepository.save(taskToSave);
+    return this.mapEntityToDto(createdTask);
   }
 
-  getTaskById(id: string): TaskDto {
-    const existsTask = this.tasks.filter((task) => task.id === id);
-    if (existsTask.length) {
-      return existsTask[0];
+  async getTaskById(id: string): Promise<TaskDto> {
+    this.validateId(id);
+    const existsTask = await this.taskRepository.findOne({ where: { id } });
+    if (!existsTask) {
+      this.notFoundExceptionCustomer(id);
     }
-    this.notFoundExceptionCustomer(id);
+    return this.mapEntityToDto(existsTask);
   }
 
-  getAllTasks(params: FindAllParameters): TaskDto[] {
-    return this.tasks.filter((t) => {
-      let status = true;
-      if (
-        params.title != undefined &&
-        !t.title.toLowerCase().includes(params.title.toLowerCase())
-      ) {
-        status = false;
-      }
+  async getAllTasks(params: FindAllParameters): Promise<TaskDto[]> {
+    const searchParams: FindOptionsWhere<TaskEntity> = {};
+    if (params.title) {
+      searchParams.title = Like(`%${params.title}%`);
+    }
+    if (params.status) {
+      searchParams.status = Like(`%${params.status}%`);
+    }
 
-      if (
-        params.status != undefined &&
-        !t.status.toLowerCase().includes(params.status.toLowerCase())
-      ) {
-        status = false;
-      }
-      return status;
+    const tasksFound = await this.taskRepository.find({
+      where: searchParams,
     });
+    return tasksFound.map((task) => this.mapEntityToDto(task));
   }
 
-  updateTask(id: string, task: TaskDto) {
-    this.getTaskById(id);
+  async updateTask(id: string, task: Partial<TaskDto>) {
+    await this.getTaskById(id);
     task.updatedDate = new Date();
-    const taskIndex = this.tasks.findIndex((t) => t.id === id);
-    this.tasks[taskIndex] = task;
-    return this.tasks[taskIndex];
+    await this.taskRepository.update(id, this.mapDtoToEntity(task));
+    return {
+      status: `Task ${id} atualizada com sucesso!`,
+      data: await this.getTaskById(id),
+    };
   }
 
-  deleteTask(id: string): string {
-    const taskIndex = this.tasks.findIndex((t) => t.id === id);
-    if (taskIndex >= 0) {
-      this.tasks.splice(taskIndex, 1);
-      return `Task ${id} apagada com sucesso!`;
-    }
-    this.notFoundExceptionCustomer(id);
+  async deleteTask(id: string): Promise<string> {
+    await this.getTaskById(id);
+    await this.taskRepository.delete(id);
+    return `Task ${id} deletada com sucesso!`;
   }
 
-  notFoundExceptionCustomer(id: string): void {
+  notFoundExceptionCustomer(id: string) {
     throw new HttpException(
       `Task inexistente com o id ${id}`,
       HttpStatus.NOT_FOUND,
     );
+  }
+  private mapEntityToDto(taskEntity: TaskEntity): TaskDto {
+    return {
+      id: taskEntity.id,
+      title: taskEntity.title,
+      description: taskEntity.description,
+      status: taskEntity.status,
+      updatedDate: taskEntity.updatedDate,
+      expirationDate: taskEntity.expirationDate,
+    };
+  }
+  private mapDtoToEntity(taskDto: Partial<TaskDto>): Partial<TaskEntity> {
+    return {
+      title: taskDto.title,
+      description: taskDto.description,
+      status: taskDto.status,
+      updatedDate: taskDto.updatedDate,
+      expirationDate: taskDto.expirationDate,
+    };
+  }
+  private validateId(id: string) {
+    if (!uuidValidate(id)) {
+      throw new BadRequestException('Id inválido');
+    }
   }
 }
